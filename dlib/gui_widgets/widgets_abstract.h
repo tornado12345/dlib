@@ -2349,7 +2349,12 @@ namespace dlib
                 can also add part labels (if they have been defined by calling add_labelable_part_name())
                 by selecting an overlay rectangle with the mouse and then right clicking
                 on the part.  If you want to move any rectangle or an object part then
-                shift+right click and drag it.
+                shift+right click and drag it.  Alternatively, if you haven't added any
+                part labels via add_labelable_part_name() you can add parts to a rectangle
+                by simply shift left clicking while it's selected.  This will add parts
+                with integer names and the integer names begin with 0 and increase. This
+                feature is only activated if the rectangle has no parts or all the parts
+                are already integer names.
                 
                 Finally, if you hold Ctrl and left click an overlay rectangle it will
                 change its label to get_default_overlay_rect_label() and color to
@@ -2801,7 +2806,7 @@ namespace dlib
             >
         void set_image_clicked_handler (
             T& object,
-            void (T::*event_handler)(const point& p, bool is_double_click)
+            void (T::*event_handler)(const point& p, bool is_double_click, unsigned long btn)
         );
         /*
             requires
@@ -2811,6 +2816,7 @@ namespace dlib
                   anywhere on the image.  When they do so this callback is called with the
                   location of the image pixel which was clicked.  The is_double_click bool
                   will also tell you if it was a double click or single click.
+                - btn == the button that was released. (either base_window::LEFT, base_window::MIDDLE, or base_window::RIGHT)
                 - any previous calls to this function are overridden by this new call.  
                   (i.e. you can only have one event handler associated with this 
                   event at a time)
@@ -2819,7 +2825,7 @@ namespace dlib
         */
 
         void set_image_clicked_handler (
-            const any_function<void(const point& p, bool is_double_click)>& event_handler
+            const any_function<void(const point& p, bool is_double_click, unsigned long btn)>& event_handler
         );
         /*
             ensures
@@ -2827,6 +2833,7 @@ namespace dlib
                   on the image.  When they do so this callback is called with the location
                   of the image pixel which was clicked.  The is_double_click bool will also
                   tell you if it was a double click or single click.
+                - btn == the button that was released. (either base_window::LEFT, base_window::MIDDLE, or base_window::RIGHT)
                 - Any previous calls to this function are overridden by this new call.
                   (i.e. you can only have one event handler associated with this event at a
                   time)

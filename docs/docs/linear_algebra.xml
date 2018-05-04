@@ -458,6 +458,10 @@
                   <link>dlib/matrix/matrix_conv_abstract.h.html#conv_valid</link>
                </item>
                <item>
+                  <name>xcorr_fft</name>
+                  <link>dlib/matrix/matrix_conv_abstract.h.html#xcorr_fft</link>
+               </item>
+               <item>
                   <name>xcorr</name>
                   <link>dlib/matrix/matrix_conv_abstract.h.html#xcorr</link>
                </item>
@@ -631,6 +635,7 @@
          <item>get_rect</item> 
          <item>centered_rect</item> 
          <item>set_aspect_ratio</item> 
+         <item>set_rect_area</item> 
          <item>center</item> 
          <item>dcenter</item> 
          <item>shrink_rect</item> 
@@ -901,7 +906,7 @@
       <component>
          <name>distance_to_line</name>
          <file>dlib/geometry.h</file>
-         <spec_file link="true">dlib/geometry/rectangle_abstract.h</spec_file>
+         <spec_file link="true">dlib/geometry/line_abstract.h</spec_file>
          <description>        
             This function takes a line and a <a href="#point">point</a>
             and returns the distance from the line to the point.  
@@ -1041,6 +1046,19 @@
          <description>        
             This function reshapes a <a href="#rectangle">rectangle</a> so that
             it has a user specified aspect ratio.
+         </description>
+                                 
+      </component>
+
+   <!-- ************************************************************************* -->
+
+      <component>
+         <name>set_rect_area</name>
+         <file>dlib/geometry.h</file>
+         <spec_file link="true">dlib/geometry/rectangle_abstract.h</spec_file>
+         <description>        
+            This function reshapes a <a href="#rectangle">rectangle</a> so that
+            it has a user specified area.
          </description>
                                  
       </component>

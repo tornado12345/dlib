@@ -495,19 +495,6 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-    template <typename T, typename U>
-    double distance_to_line (
-        const std::pair<vector<T,2>,vector<T,2> >& line,
-        const vector<U,2>& p
-    )
-    {
-        const vector<double,2> delta = p-line.second;
-        const double along_dist = (line.first-line.second).normalize().dot(delta);
-        return std::sqrt(std::max(0.0,delta.length_squared() - along_dist*along_dist));
-    }
-
-// ----------------------------------------------------------------------------------------
-
     inline void clip_line_to_rectangle (
         const rectangle& box,
         point& p1,
@@ -724,6 +711,29 @@ namespace dlib
     )
     {
         return rectangle(x, y, x+rect.width()-1, y+rect.height()-1);
+    }
+
+// ----------------------------------------------------------------------------------------
+
+    inline rectangle set_rect_area (
+        const rectangle& rect,
+        unsigned long area
+    )
+    {
+        DLIB_ASSERT(area > 0);
+
+        if (rect.area() == 0)
+        {
+            // In this case we will make the output rectangle a square with the requested
+            // area.
+            unsigned long scale = std::round(std::sqrt(area));
+            return centered_rect(rect, scale, scale);
+        }
+        else
+        {
+            double scale = std::sqrt(area/(double)rect.area());
+            return centered_rect(rect, (long)std::round(rect.width()*scale), (long)std::round(rect.height()*scale));
+        }
     }
 
 // ----------------------------------------------------------------------------------------
