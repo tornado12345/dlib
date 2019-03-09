@@ -15,10 +15,6 @@
 #   Alternatively, if you want to compile dlib yourself then go into the dlib
 #   root folder and run:
 #       python setup.py install
-#   or
-#       python setup.py install --yes USE_AVX_INSTRUCTIONS
-#   if you have a CPU that supports AVX instructions, since this makes some
-#   things run faster.  
 #
 #   Compiling dlib should work on any operating system so long as you have
 #   CMake installed.  On Ubuntu, this can be done easily by running the
@@ -131,7 +127,7 @@ detector1 = dlib.fhog_object_detector("detector.svm")
 # In this example we load detector.svm again since it's the only one we have on
 # hand. But in general it would be a different detector.
 detector2 = dlib.fhog_object_detector("detector.svm") 
-# make a list of all the detectors you wan to run.  Here we have 2, but you
+# make a list of all the detectors you want to run.  Here we have 2, but you
 # could have any number.
 detectors = [detector1, detector2]
 image = dlib.load_rgb_image(faces_folder + '/2008_002506.jpg')

@@ -14,6 +14,7 @@
 #include "../simd.h"
 #include "../image_processing/full_object_detection.h"
 #include <limits>
+#include <array>
 #include "../rand.h"
 
 namespace dlib
@@ -227,12 +228,6 @@ namespace dlib
 
     class interpolate_bilinear
     {
-        template <typename T>
-        struct is_rgb_image 
-        {
-            const static bool value = pixel_traits<typename T::pixel_type>::rgb;
-        };
-
     public:
 
         template <typename T, typename image_view_type, typename pixel_type>
@@ -329,11 +324,6 @@ namespace dlib
 
     class interpolate_quadratic
     {
-        template <typename T>
-        struct is_rgb_image 
-        {
-            const static bool value = pixel_traits<typename T::pixel_type>::rgb;
-        };
 
     public:
 
@@ -704,11 +694,6 @@ namespace dlib
 
 // ----------------------------------------------------------------------------------------
 
-    template <typename image_type>
-    struct is_rgb_image { const static bool value = pixel_traits<typename image_traits<image_type>::pixel_type>::rgb; };
-    template <typename image_type>
-    struct is_grayscale_image { const static bool value = pixel_traits<typename image_traits<image_type>::pixel_type>::grayscale; };
-
     // This is an optimized version of resize_image for the case where bilinear
     // interpolation is used.
     template <
@@ -911,11 +896,12 @@ namespace dlib
 // ----------------------------------------------------------------------------------------
 
     template <
-        typename image_type
+        typename image_type1,
+        typename image_type2
         >
-    typename enable_if<is_rgb_image<image_type> >::type resize_image (
-        const image_type& in_img_,
-        image_type& out_img_,
+    typename enable_if_c<is_rgb_image<image_type1>::value && is_rgb_image<image_type2>::value >::type resize_image (
+        const image_type1& in_img_,
+        image_type2& out_img_,
         interpolate_bilinear
     )
     {
@@ -926,14 +912,14 @@ namespace dlib
             << "\n\t is_same_object(in_img_, out_img_):  " << is_same_object(in_img_, out_img_)
             );
 
-        const_image_view<image_type> in_img(in_img_);
-        image_view<image_type> out_img(out_img_);
+        const_image_view<image_type1> in_img(in_img_);
+        image_view<image_type2> out_img(out_img_);
 
         if (out_img.size() == 0 || in_img.size() == 0)
             return;
 
 
-        typedef typename image_traits<image_type>::pixel_type T;
+        typedef typename image_traits<image_type1>::pixel_type T;
         const double x_scale = (in_img.nc()-1)/(double)std::max<long>((out_img.nc()-1),1);
         const double y_scale = (in_img.nr()-1)/(double)std::max<long>((out_img.nr()-1),1);
         double y = -y_scale;
@@ -1160,15 +1146,15 @@ namespace dlib
         }
 
         inline rectangle tform_object (
-            const point_transform_affine& tran,
+            const rectangle_transform& tran,
             const rectangle& rect
         )
         {
-            return centered_rect(tran(center(rect)), rect.width(), rect.height());
+            return tran(rect);
         }
 
         inline mmod_rect tform_object (
-            const point_transform_affine& tran,
+            const rectangle_transform& tran,
             mmod_rect rect
         )
         {
@@ -1472,12 +1458,12 @@ namespace dlib
         typename image_array_type::value_type temp;
         for (unsigned long i = 0; i < images.size(); ++i)
         {
-            const point_transform_affine tran = rotate_image(images[i], temp, angle);
+            const rectangle_transform tran = rotate_image(images[i], temp, angle);
             swap(temp, images[i]);
             for (unsigned long j = 0; j < objects[i].size(); ++j)
             {
                 const rectangle rect = objects[i][j];
-                objects[i][j] = centered_rect(tran(center(rect)), rect.width(), rect.height());
+                objects[i][j] = tran(rect);
             }
         }
     }
@@ -1503,17 +1489,17 @@ namespace dlib
         typename image_array_type::value_type temp;
         for (unsigned long i = 0; i < images.size(); ++i)
         {
-            const point_transform_affine tran = rotate_image(images[i], temp, angle);
+            const rectangle_transform tran = rotate_image(images[i], temp, angle);
             swap(temp, images[i]);
             for (unsigned long j = 0; j < objects[i].size(); ++j)
             {
                 const rectangle rect = objects[i][j];
-                objects[i][j] = centered_rect(tran(center(rect)), rect.width(), rect.height());
+                objects[i][j] = tran(rect);
             }
             for (unsigned long j = 0; j < objects2[i].size(); ++j)
             {
                 const rectangle rect = objects2[i][j];
-                objects2[i][j] = centered_rect(tran(center(rect)), rect.width(), rect.height());
+                objects2[i][j] = tran(rect);
             }
         }
     }
@@ -1762,11 +1748,18 @@ namespace dlib
             unsigned long size
         ) 
         {
-            const double relative_size = std::sqrt(size/(double)rect.area());
-            rows = static_cast<unsigned long>(rect.height()*relative_size + 0.5);
-            cols  = static_cast<unsigned long>(size/(double)rows + 0.5);
-            rows = std::max(1ul,rows);
-            cols = std::max(1ul,cols);
+            if (rect.is_empty())
+            {
+                cols = rows = std::round(std::sqrt((double)size));
+            }
+            else
+            {
+                const double relative_size = std::sqrt(size/(double)rect.area());
+                rows = static_cast<unsigned long>(rect.height()*relative_size + 0.5);
+                cols  = static_cast<unsigned long>(size/(double)rows + 0.5);
+                rows = std::max(1ul,rows);
+                cols = std::max(1ul,cols);
+            }
         }
     };
 
@@ -2143,6 +2136,68 @@ namespace dlib
         for (unsigned long i = 0; i < dets.size(); ++i)
             res.push_back(get_face_chip_details(dets[i], size, padding));
         return res;
+    }
+
+// ----------------------------------------------------------------------------------------
+    
+
+    template <
+        typename image_type
+        >
+    void extract_image_4points (
+        const image_type& img_,
+        image_type& out_,
+        const std::array<dpoint,4>& pts
+    )
+    {
+        const_image_view<image_type> img(img_);
+        image_view<image_type> out(out_);
+        if (out.size() == 0)
+            return;
+
+        drectangle bounding_box;
+        for (auto& p : pts)
+            bounding_box += p;
+
+        const std::array<dpoint,4> corners = {{bounding_box.tl_corner(), bounding_box.tr_corner(),
+                                               bounding_box.bl_corner(), bounding_box.br_corner()}};
+
+        matrix<double> dists(4,4);
+        for (long r = 0; r < dists.nr(); ++r)
+        {
+            for (long c = 0; c < dists.nc(); ++c)
+            {
+                dists(r,c) = length_squared(corners[r] - pts[c]);
+            }
+        }
+
+        matrix<long long> idists = matrix_cast<long long>(-round(std::numeric_limits<long long>::max()*(dists/max(dists))));
+
+
+        const drectangle area = get_rect(out);
+        std::vector<dpoint> from_points = {area.tl_corner(), area.tr_corner(),
+                                           area.bl_corner(), area.br_corner()};
+
+        // find the assignment of corners to pts
+        auto assignment = max_cost_assignment(idists);
+        std::vector<dpoint> to_points(4);
+        for (size_t i = 0; i < assignment.size(); ++i)
+            to_points[i] = pts[assignment[i]];
+
+        auto tform = find_projective_transform(from_points, to_points);
+        transform_image(img_, out_, interpolate_bilinear(), tform);
+    }
+
+    template <
+        typename image_type
+        >
+    void extract_image_4points (
+        const image_type& img,
+        image_type& out,
+        const std::array<line,4>& lines 
+    )
+    {
+        extract_image_4points(img, out, find_convex_quadrilateral(lines));
     }
 
 // ----------------------------------------------------------------------------------------

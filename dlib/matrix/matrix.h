@@ -39,6 +39,12 @@
 // is not possible because the division operation is inside "if (NR!=0)" block.
 #pragma warning(disable : 4723)
 
+// "warning C4724: potential mod by 0" - This warning is triggered in
+// matrix(const std::initializer_list<T>& l) where the compiler can see that
+// matrix<> was templated in a way making NR ending up 0, but mod by 0 at runtime
+// is not possible because the mod operation is inside "if (NR!=0)" block.
+#pragma warning(disable : 4724)
+
 #endif
 
 namespace dlib
@@ -1643,8 +1649,8 @@ namespace dlib
             const T val
         )
         {
-            const long size = nr()*nc();
-            for (long i = 0; i < size; ++i)
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
                 data(i) += val;
 
             return *this;
@@ -1654,8 +1660,8 @@ namespace dlib
             const T val
         )
         {
-            const long size = nr()*nc();
-            for (long i = 0; i < size; ++i)
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
                 data(i) -= val;
 
             return *this;
@@ -1765,7 +1771,7 @@ namespace dlib
             explicit literal_assign_helper(matrix* m_): m(m_), r(0), c(0),has_been_used(false) {next();}
             ~literal_assign_helper() noexcept(false)
             {
-                DLIB_CASSERT(!has_been_used || r == m->nr(),
+                DLIB_CASSERT(!has_been_used || r == (*m).nr(),
                              "You have used the matrix comma based assignment incorrectly by failing to\n"
                              "supply a full set of values for every element of a matrix object.\n");
             }
@@ -1774,14 +1780,14 @@ namespace dlib
                 const T& val
             ) const
             {
-                DLIB_CASSERT(r < m->nr() && c < m->nc(),
+                DLIB_CASSERT(r < (*m).nr() && c < (*m).nc(),
                              "You have used the matrix comma based assignment incorrectly by attempting to\n" <<
                              "supply more values than there are elements in the matrix object being assigned to.\n\n" <<
                              "Did you forget to call set_size()?" 
                              << "\n\t r: " << r 
                              << "\n\t c: " << c 
-                             << "\n\t m->nr(): " << m->nr()
-                             << "\n\t m->nc(): " << m->nc());
+                             << "\n\t m->nr(): " << (*m).nr()
+                             << "\n\t m->nc(): " << (*m).nc());
                 (*m)(r,c) = val;
                 next();
                 has_been_used = true;
@@ -1796,7 +1802,7 @@ namespace dlib
             ) const
             {
                 ++c;
-                if (c == m->nc())
+                if (c == (*m).nc())
                 {
                     c = 0;
                     ++r;
@@ -1824,8 +1830,8 @@ namespace dlib
         ) 
         {  
             // assign the given value to every spot in this matrix
-            const long size = nr()*nc();
-            for (long i = 0; i < size; ++i)
+            const size_t size = nr()*(size_t)nc();
+            for (size_t i = 0; i < size; ++i)
                 data(i) = val;
 
             // Now return the literal_assign_helper so that the user
@@ -2162,6 +2168,7 @@ namespace dlib
 // put warnings back to their default settings
 #pragma warning(default : 4355)
 #pragma warning(default : 4723)
+#pragma warning(default : 4724)
 #endif
 
 #endif // DLIB_MATRIx_

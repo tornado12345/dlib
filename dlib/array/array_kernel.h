@@ -91,6 +91,8 @@ namespace dlib
         {}
 
         array(const array&) = delete;
+        array& operator=(array&) = delete; 
+
         array(
             array&& item
         ) : array()
@@ -218,10 +220,6 @@ namespace dlib
         T* last_pos;
         mutable bool _at_start;
 
-        // restricted functions
-        array(array<T>&);        // copy constructor
-        array<T>& operator=(array<T>&);    // assignment operator        
-
     };
 
     template <
@@ -252,7 +250,7 @@ namespace dlib
             for (size_t i = 0; i < item.size(); ++i)
                 serialize(item[i],out);
         }
-        catch (serialization_error e)
+        catch (serialization_error& e)
         { 
             throw serialization_error(e.info + "\n   while serializing object of type array"); 
         }
@@ -277,7 +275,7 @@ namespace dlib
             for (size_t i = 0; i < size; ++i)
                 deserialize(item[i],in);
         }
-        catch (serialization_error e)
+        catch (serialization_error& e)
         { 
             item.clear();
             throw serialization_error(e.info + "\n   while deserializing object of type array"); 

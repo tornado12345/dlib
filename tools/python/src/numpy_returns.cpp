@@ -20,6 +20,13 @@ numpy_image<rgb_pixel> load_rgb_image (const std::string &path)
     return img; 
 }
 
+numpy_image<unsigned char> load_grayscale_image (const std::string &path)
+{
+    numpy_image<unsigned char> img;
+    load_image(img, path);
+    return img; 
+}
+
 bool has_ending (std::string const full_string, std::string const &ending) {
     if(full_string.length() >= ending.length()) {
         return (0 == full_string.compare(full_string.length() - ending.length(), ending.length(), ending));
@@ -30,7 +37,8 @@ bool has_ending (std::string const full_string, std::string const &ending) {
 
 // ----------------------------------------------------------------------------------------
 
-void save_rgb_image(numpy_image<rgb_pixel> img, const std::string &path)
+template <typename T>
+void save_image(numpy_image<T> img, const std::string &path)
 {
     std::string lowered_path = path;
     std::transform(lowered_path.begin(), lowered_path.end(), lowered_path.begin(), ::tolower);
@@ -89,12 +97,12 @@ py::list get_face_chips (
     py::list chips_list;
 
     std::vector<chip_details> dets;
-    for (auto& f : faces)
+    for (const auto& f : faces)
         dets.push_back(get_face_chip_details(f, size, padding));
     dlib::array<numpy_image<rgb_pixel>> face_chips;
     extract_image_chips(img, dets, face_chips);
 
-    for (auto& chip : face_chips) 
+    for (const auto& chip : face_chips) 
     {
         // Append image to chips list
         chips_list.append(chip);
@@ -120,12 +128,21 @@ void bind_numpy_returns(py::module &m)
 {
     m.def("load_rgb_image", &load_rgb_image, 
 	"Takes a path and returns a numpy array (RGB) containing the image",
-	py::arg("path")
+	py::arg("filename")
     );
 
-    m.def("save_rgb_image", &save_rgb_image, 
-	"Saves the given (RGB) image to the specified path. Determines the file type from the file extension specified in the path",
-	py::arg("img"), py::arg("path")
+    m.def("load_grayscale_image", &load_grayscale_image, 
+	"Takes a path and returns a numpy array containing the image, as an 8bit grayscale image.",
+	py::arg("filename")
+    );
+
+    m.def("save_image", &save_image<rgb_pixel>, 
+	"Saves the given image to the specified path. Determines the file type from the file extension specified in the path",
+	py::arg("img"), py::arg("filename")
+    );
+    m.def("save_image", &save_image<unsigned char>, 
+	"Saves the given image to the specified path. Determines the file type from the file extension specified in the path",
+	py::arg("img"), py::arg("filename")
     );
 
     m.def("jitter_image", &get_jitter_images, 
