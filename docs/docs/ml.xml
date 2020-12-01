@@ -126,6 +126,7 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
                <item>input_rgb_image</item>
                <item>input_rgb_image_sized</item>
                <item>input_rgb_image_pyramid</item>
+               <item>input_grayscale_image_pyramid</item>
                <item>
                   <name>EXAMPLE_INPUT_LAYER</name>
                   <link>dlib/dnn/input_abstract.h.html#EXAMPLE_INPUT_LAYER</link>
@@ -204,6 +205,14 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
                   <link>dlib/dnn/layers_abstract.h.html#avg_pool_</link>
                </item>
                <item>
+                  <name>leaky_relu</name>
+                  <link>dlib/dnn/layers_abstract.h.html#leaky_relu_</link>
+               </item>
+               <item>
+                  <name>mish</name>
+                  <link>dlib/dnn/layers_abstract.h.html#mish_</link>
+               </item>
+               <item>
                   <name>relu</name>
                   <link>dlib/dnn/layers_abstract.h.html#relu_</link>
                </item>
@@ -269,6 +278,14 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
                   <link>dlib/dnn/loss_abstract.h.html#loss_binary_log_</link>
                </item>
                <item>
+                  <name>loss_multiclass_log_weighted</name>
+                  <link>dlib/dnn/loss_abstract.h.html#loss_multiclass_log_weighted_</link>
+               </item>
+               <item>
+                  <name>loss_binary_log_per_pixel</name>
+                  <link>dlib/dnn/loss_abstract.h.html#loss_binary_log_per_pixel_</link>
+               </item>
+               <item>
                   <name>loss_multimulticlass_log</name>
                   <link>dlib/dnn/loss_abstract.h.html#loss_multimulticlass_log_</link>
                </item>
@@ -303,6 +320,10 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
                <item>
                   <name>loss_mean_squared_multioutput</name>
                   <link>dlib/dnn/loss_abstract.h.html#loss_mean_squared_multioutput_</link>
+               </item>
+               <item>
+                  <name>loss_mean_squared_per_channel_and_pixel</name>
+                  <link>dlib/dnn/loss_abstract.h.html#loss_mean_squared_per_channel_and_pixel_</link>
                </item>
             </sub>
          </item>
@@ -522,6 +543,8 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
          <examples>
             <example>dnn_introduction_ex.cpp.html</example>
             <example>dnn_introduction2_ex.cpp.html</example>
+            <example>dnn_introduction3_ex.cpp.html</example>
+            <example>dnn_dcgan_train_ex.cpp.html</example>
             <example>dnn_inception_ex.cpp.html</example>
             <example>dnn_imagenet_ex.cpp.html</example>
             <example>dnn_imagenet_train_ex.cpp.html</example>
@@ -536,6 +559,8 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
             <example>dnn_face_recognition_ex.cpp.html</example>
             <example>dnn_semantic_segmentation_ex.cpp.html</example>
             <example>dnn_semantic_segmentation_train_ex.cpp.html</example>
+            <example>dnn_instance_segmentation_ex.cpp.html</example>
+            <example>dnn_instance_segmentation_train_ex.cpp.html</example>
          </examples>
       </component>
 
@@ -745,6 +770,18 @@ Davis E. King. <a href="http://jmlr.csail.mit.edu/papers/volume10/king09a/king09
             <example>dnn_mmod_face_detection_ex.cpp.html</example>
             <example>dnn_mmod_dog_hipsterizer.cpp.html</example>
          </examples>
+      </component>
+
+   <!-- ************************************************************************* -->
+
+      <component>
+         <name>input_grayscale_image_pyramid</name>
+         <file>dlib/dnn.h</file>
+         <spec_file link="true">dlib/dnn/input_abstract.h</spec_file>
+         <description>
+            This input layer is just like <a href="#input_rgb_image_pyramid">input_rgb_image_pyramid</a> 
+            except it takes a grayscale image as input.
+         </description>
       </component>
 
    <!-- ************************************************************************* -->

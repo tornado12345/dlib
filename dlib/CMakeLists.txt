@@ -6,15 +6,21 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 
+set(CMAKE_DISABLE_SOURCE_CHANGES ON)
+set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+
 if(POLICY CMP0048)
    cmake_policy(SET CMP0048 NEW)
+endif()
+if(POLICY CMP0077)
+   cmake_policy(SET CMP0077 NEW)
 endif()
 
 project(dlib)
 
 set(CPACK_PACKAGE_NAME "dlib")
 set(CPACK_PACKAGE_VERSION_MAJOR "19")
-set(CPACK_PACKAGE_VERSION_MINOR "16")
+set(CPACK_PACKAGE_VERSION_MINOR "21")
 set(CPACK_PACKAGE_VERSION_PATCH "99")
 set(VERSION ${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH})
 # Only print these messages once, even if dlib is added multiple times via add_subdirectory()
@@ -266,12 +272,7 @@ if (NOT TARGET dlib)
       md5/md5_kernel_1.cpp
       tokenizer/tokenizer_kernel_1.cpp
       unicode/unicode.cpp
-      data_io/image_dataset_metadata.cpp
-      data_io/mnist.cpp
-      global_optimization/global_function_search.cpp
-      filtering/kalman_filter.cpp
       test_for_odr_violations.cpp
-      svm/auto.cpp
       )
 
 
@@ -312,6 +313,12 @@ if (NOT TARGET dlib)
          stack_trace.cpp
          cuda/cpu_dlib.cpp
          cuda/tensor_tools.cpp
+         data_io/image_dataset_metadata.cpp
+         data_io/mnist.cpp
+         data_io/cifar.cpp
+         global_optimization/global_function_search.cpp
+         filtering/kalman_filter.cpp
+         svm/auto.cpp
          )
 
       if(UNIX)
@@ -370,14 +377,8 @@ if (NOT TARGET dlib)
             endif()
          endif()
 
-         mark_as_advanced(pthreadlib xlib xlib_path x11_path)
+         mark_as_advanced(xlib xlib_path x11_path)
       else () ##################################################################################
-         # link to the nsl library if it exists.  this is something you need sometimes 
-         find_library(nsllib nsl)
-         if (nsllib)
-            set (dlib_needed_libraries ${dlib_needed_libraries} ${nsllib})
-         endif ()
-
          # link to the socket library if it exists.  this is something you need on solaris
          find_library(socketlib socket)
          if (socketlib)
@@ -400,7 +401,7 @@ if (NOT TARGET dlib)
             endif()
          endif()
 
-         mark_as_advanced(nsllib pthreadlib socketlib)
+         mark_as_advanced(nsllib socketlib)
       endif () ##################################################################################
 
       if (NOT DLIB_NO_GUI_SUPPORT)
@@ -430,19 +431,10 @@ if (NOT TARGET dlib)
       endif()
 
       if (DLIB_PNG_SUPPORT)
-         # try to find libpng 
-         find_package(PNG QUIET)
-         # Make sure there isn't something wrong with the version of LIBPNG
-         # installed on this system.  Also never link to anything from anaconda
-         # since it's probably broken.
-         if (PNG_FOUND AND NOT ("${PNG_INCLUDE_DIR}" MATCHES "(.*)(Ana|ana|mini)conda(.*)") AND NOT BUILDING_PYTHON_IN_MSVC)
-            set(CMAKE_REQUIRED_LIBRARIES ${PNG_LIBRARIES})
-            CHECK_FUNCTION_EXISTS(png_create_read_struct LIBPNG_IS_GOOD)
-         endif()
-         if (PNG_FOUND AND LIBPNG_IS_GOOD)
+         include(cmake_utils/find_libpng.cmake)
+         if (PNG_FOUND)
             include_directories(${PNG_INCLUDE_DIR})
             set (dlib_needed_libraries ${dlib_needed_libraries} ${PNG_LIBRARIES})
-            set(REQUIRES_LIBS " libpng")
          else()
             # If we can't find libpng then statically compile it in.
             include_directories(external/libpng external/zlib)
@@ -492,7 +484,6 @@ if (NOT TARGET dlib)
                   )
                set_source_files_properties(external/libpng/arm/filter_neon.S PROPERTIES COMPILE_FLAGS "${CMAKE_ASM_FLAGS} ${CMAKE_CXX_FLAGS} -x assembler-with-cpp")
             endif()
-            set(REQUIRES_LIBS "")
          endif()
          set(source_files ${source_files}
             image_loader/png_loader.cpp
@@ -501,66 +492,58 @@ if (NOT TARGET dlib)
       endif()
 
       if (DLIB_JPEG_SUPPORT)
-         # try to find libjpeg 
-         find_package(JPEG QUIET)
-         # Make sure there isn't something wrong with the version of libjpeg 
-         # installed on this system.  Also don't use the installed libjpeg
-         # if this is an APPLE system because apparently it's broken (as of 2015/01/01).
-         if (JPEG_FOUND AND NOT ("${JPEG_INCLUDE_DIR}" MATCHES "(.*)(Ana|ana|mini)conda(.*)") AND NOT BUILDING_PYTHON_IN_MSVC)
-            set(CMAKE_REQUIRED_LIBRARIES ${JPEG_LIBRARY})
-            CHECK_FUNCTION_EXISTS(jpeg_read_header LIBJPEG_IS_GOOD)
-         endif()
-         if (JPEG_FOUND AND LIBJPEG_IS_GOOD AND NOT APPLE)
+         include(cmake_utils/find_libjpeg.cmake)
+         if (JPEG_FOUND)
             include_directories(${JPEG_INCLUDE_DIR})
             set (dlib_needed_libraries ${dlib_needed_libraries} ${JPEG_LIBRARY})
          else()
             # If we can't find libjpeg then statically compile it in.
             add_definitions(-DDLIB_JPEG_STATIC)
             set(source_files ${source_files}
-               external/libjpeg/jcomapi.cpp
-               external/libjpeg/jdapimin.cpp
-               external/libjpeg/jdapistd.cpp
-               external/libjpeg/jdatasrc.cpp
-               external/libjpeg/jdcoefct.cpp
-               external/libjpeg/jdcolor.cpp
-               external/libjpeg/jddctmgr.cpp
-               external/libjpeg/jdhuff.cpp
-               external/libjpeg/jdinput.cpp
-               external/libjpeg/jdmainct.cpp
-               external/libjpeg/jdmarker.cpp
-               external/libjpeg/jdmaster.cpp
-               external/libjpeg/jdmerge.cpp
-               external/libjpeg/jdphuff.cpp
-               external/libjpeg/jdpostct.cpp
-               external/libjpeg/jdsample.cpp
-               external/libjpeg/jerror.cpp
-               external/libjpeg/jidctflt.cpp
-               external/libjpeg/jidctfst.cpp
-               external/libjpeg/jidctint.cpp
-               external/libjpeg/jidctred.cpp
-               external/libjpeg/jmemmgr.cpp
-               external/libjpeg/jmemnobs.cpp
-               external/libjpeg/jquant1.cpp
-               external/libjpeg/jquant2.cpp
-               external/libjpeg/jutils.cpp  
-               external/libjpeg/jcapimin.cpp
-               external/libjpeg/jdatadst.cpp
-               external/libjpeg/jcparam.cpp
-               external/libjpeg/jcapistd.cpp
-               external/libjpeg/jcmarker.cpp
-               external/libjpeg/jcinit.cpp
-               external/libjpeg/jcmaster.cpp
-               external/libjpeg/jcdctmgr.cpp
-               external/libjpeg/jccoefct.cpp  
-               external/libjpeg/jccolor.cpp  
-               external/libjpeg/jchuff.cpp  
-               external/libjpeg/jcmainct.cpp  
-               external/libjpeg/jcphuff.cpp  
-               external/libjpeg/jcprepct.cpp  
-               external/libjpeg/jcsample.cpp
-               external/libjpeg/jfdctint.cpp
-               external/libjpeg/jfdctflt.cpp
-               external/libjpeg/jfdctfst.cpp
+              external/libjpeg/jaricom.c
+              external/libjpeg/jcapimin.c
+              external/libjpeg/jcapistd.c
+              external/libjpeg/jcarith.c
+              external/libjpeg/jccoefct.c
+              external/libjpeg/jccolor.c
+              external/libjpeg/jcdctmgr.c
+              external/libjpeg/jchuff.c
+              external/libjpeg/jcinit.c
+              external/libjpeg/jcmainct.c
+              external/libjpeg/jcmarker.c
+              external/libjpeg/jcmaster.c
+              external/libjpeg/jcomapi.c
+              external/libjpeg/jcparam.c
+              external/libjpeg/jcprepct.c
+              external/libjpeg/jcsample.c
+              external/libjpeg/jdapimin.c
+              external/libjpeg/jdapistd.c
+              external/libjpeg/jdarith.c
+              external/libjpeg/jdatadst.c
+              external/libjpeg/jdatasrc.c
+              external/libjpeg/jdcoefct.c
+              external/libjpeg/jdcolor.c
+              external/libjpeg/jddctmgr.c
+              external/libjpeg/jdhuff.c
+              external/libjpeg/jdinput.c
+              external/libjpeg/jdmainct.c
+              external/libjpeg/jdmarker.c
+              external/libjpeg/jdmaster.c
+              external/libjpeg/jdmerge.c
+              external/libjpeg/jdpostct.c
+              external/libjpeg/jdsample.c
+              external/libjpeg/jerror.c
+              external/libjpeg/jfdctflt.c
+              external/libjpeg/jfdctfst.c
+              external/libjpeg/jfdctint.c
+              external/libjpeg/jidctflt.c
+              external/libjpeg/jidctfst.c
+              external/libjpeg/jidctint.c
+              external/libjpeg/jmemmgr.c
+              external/libjpeg/jmemnobs.c
+              external/libjpeg/jquant1.c
+              external/libjpeg/jquant2.c
+              external/libjpeg/jutils.c
                )
          endif()
          set(source_files ${source_files}
@@ -651,12 +634,11 @@ if (NOT TARGET dlib)
                endif()
             endif()
 
-
             set(CUDA_HOST_COMPILATION_CPP ON)
             # Note that we add __STRICT_ANSI__ to avoid freaking out nvcc with gcc specific
             # magic in the standard C++ header files (since nvcc uses gcc headers on
             # linux).
-            list(APPEND CUDA_NVCC_FLAGS "-arch=sm_30;-D__STRICT_ANSI__;-D_MWAITXINTRIN_H_INCLUDED;-D_FORCE_INLINES;${FLAGS_FOR_NVCC}")
+            list(APPEND CUDA_NVCC_FLAGS "-arch=sm_50;-D__STRICT_ANSI__;-D_MWAITXINTRIN_H_INCLUDED;-D_FORCE_INLINES;${FLAGS_FOR_NVCC}")
             list(APPEND CUDA_NVCC_FLAGS ${active_preprocessor_switches})
             if (NOT DLIB_IN_PROJECT_BUILD)
                LIST(APPEND CUDA_NVCC_FLAGS -DDLIB__CMAKE_GENERATED_A_CONFIG_H_FILE)
@@ -698,19 +680,27 @@ if (NOT TARGET dlib)
                   message(STATUS "*****************************************************************************************************************")
                   message(STATUS "*** CUDA was found but your compiler failed to compile a simple CUDA program so dlib isn't going to use CUDA. ")
                   message(STATUS "*** The output of the failed CUDA test compile is shown below: ")
+                  message(STATUS "*** ")
                   message(STATUS "***   ${try_compile_output_message}")
                   message(STATUS "*****************************************************************************************************************")
                else()
-                  message(STATUS "Checking if you have the right version of cuDNN installed.")
+                  message(STATUS "Building a cuDNN test project to check if you have the right version of cuDNN installed...")
                   try_compile(cudnn_test_compile_worked 
                      ${PROJECT_BINARY_DIR}/cudnn_test_build 
                      ${PROJECT_SOURCE_DIR}/cmake_utils/test_for_cudnn cudnn_test
                      CMAKE_FLAGS ${CUDA_TEST_CMAKE_FLAGS}
+                     OUTPUT_VARIABLE try_compile_output_message
                      )
                   if (NOT cudnn_test_compile_worked)
-                     message(STATUS "*** Found cuDNN, but it looks like the wrong version so dlib will not use it.              ***")
-                     message(STATUS "*** Dlib requires cuDNN V5.0 OR GREATER.  Since cuDNN is not found DLIB WILL NOT USE CUDA. ***")
-                     message(STATUS "*** If you have cuDNN then set CMAKE_PREFIX_PATH to include cuDNN's folder.                ***")
+                     string(REPLACE "\n" "\n   ***   " try_compile_output_message "${try_compile_output_message}")
+                     message(STATUS "*****************************************************************************************************")
+                     message(STATUS "*** Found cuDNN, but we failed to compile the dlib/cmake_utils/test_for_cudnn project. ")
+                     message(STATUS "*** You either have an unsupported version of cuDNN or something is wrong with your cudDNN install.")
+                     message(STATUS "*** Since a functional cuDNN is not found DLIB WILL NOT USE CUDA. ")
+                     message(STATUS "*** The output of the failed test_for_cudnn build is: ")
+                     message(STATUS "*** ")
+                     message(STATUS "***   ${try_compile_output_message}")
+                     message(STATUS "*****************************************************************************************************")
                   endif()
                endif()
             endif()
@@ -720,6 +710,16 @@ if (NOT TARGET dlib)
             if (NOT CUDA_cusolver_LIBRARY)
                get_filename_component(cuda_blas_path "${CUDA_CUBLAS_LIBRARIES}" DIRECTORY)
                find_library(CUDA_cusolver_LIBRARY cusolver HINTS ${cuda_blas_path})
+               # CUDA 10.1 doesn't install symbolic links to libcusolver.so in
+               # the usual place.  This is probably a bug in the cuda
+               # installer.  In any case, If we haven't found cusolver yet go
+               # look in the cuda install folder for it.  New versions of cmake
+               # do this correctly, but older versions need help.
+               if (NOT CUDA_cusolver_LIBRARY)
+                  find_library(CUDA_cusolver_LIBRARY cusolver HINTS 
+                     /usr/local/cuda/lib64/
+                     )
+               endif()
                mark_as_advanced(CUDA_cusolver_LIBRARY)
             endif()
             # Also find OpenMP since cuSOLVER needs it.  Importantly, we only
@@ -759,6 +759,7 @@ if (NOT TARGET dlib)
                ${cudnn}
                ${CUDA_curand_LIBRARY}
                ${CUDA_cusolver_LIBRARY}
+               ${CUDA_CUDART_LIBRARY}
                )
             if(openmp_libraries)
                list(APPEND dlib_needed_libraries ${openmp_libraries})
@@ -870,6 +871,11 @@ if (NOT TARGET dlib)
 
    # Install the library
    if (NOT DLIB_IN_PROJECT_BUILD)
+      string (REPLACE ";" " " pkg_config_dlib_needed_libraries "${dlib_needed_libraries}")
+      # Make the -I include options for pkg-config
+      foreach (ITR ${dlib_needed_includes})
+         set (pkg_config_dlib_needed_includes "${pkg_config_dlib_needed_includes} -I${ITR}")
+      endforeach()
       set_target_properties(dlib PROPERTIES
          VERSION ${VERSION})
       install(TARGETS dlib
@@ -958,6 +964,32 @@ if (COMMAND pybind11_add_module)
    # Don't export unnecessary symbols.
    set_target_properties(dlib PROPERTIES CXX_VISIBILITY_PRESET "hidden")
    set_target_properties(dlib PROPERTIES CUDA_VISIBILITY_PRESET "hidden")
+endif()
+
+if (WIN32 AND mkl_iomp_dll)
+   # If we are using the Intel MKL on windows then try and copy the iomp dll
+   # file to the output folder.  We do this since a very large number of
+   # windows users don't understand that they need to add the Intel MKL's
+   # folders to their PATH to use the Intel MKL.  They then complain on the
+   # dlib forums.  Copying the Intel MKL dlls to the output directory removes
+   # the need to add the Intel MKL to the PATH.
+   if (CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+      add_custom_command(TARGET dlib POST_BUILD
+         # In some newer versions of windows/visual studio the output Config folder doesn't
+         # exist at first, so you can't copy to it unless you make it yourself.  So make
+         # sure the target folder exists first.
+         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/"
+         COMMAND ${CMAKE_COMMAND} -E copy "${mkl_iomp_dll}" "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/"
+         )
+   else()
+      add_custom_command(TARGET dlib POST_BUILD
+         # In some newer versions of windows/visual studio the output Config folder doesn't
+         # exist at first, so you can't copy to it unless you make it yourself.  So make
+         # sure the target folder exists first.
+         COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/$<CONFIG>/"
+         COMMAND ${CMAKE_COMMAND} -E copy "${mkl_iomp_dll}" "${CMAKE_BINARY_DIR}/$<CONFIG>/"
+         )
+   endif()
 endif()
 
 add_library(dlib::dlib ALIAS dlib)
